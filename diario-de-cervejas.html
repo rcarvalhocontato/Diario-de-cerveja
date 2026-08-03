@@ -1,0 +1,989 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, viewport-fit=cover">
+<title>Diário de Cervejas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --navy:#2c3e50; --navy-dark:#22303e; --bg:#eceff1; --card:#ffffff;
+    --orange:#f5a742; --orange-deep:#dd8a28; --text:#263238; --muted:#78909c;
+    --line:#e1e6e9; --danger:#e05a4d; --star:#f5b942; --star-bg:#d6dade;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{background:var(--bg); color:var(--text); font-family:'Inter',-apple-system,sans-serif; min-height:100vh; padding-bottom:20px; -webkit-font-smoothing:antialiased;}
+  button{font-family:inherit;}
+
+  header{position:sticky; top:0; z-index:30; background:var(--navy); color:#fff; padding:14px 12px; display:flex; align-items:center; gap:10px;}
+  header .hbtn{width:36px; height:36px; border-radius:8px; border:none; background:transparent; color:#fff; font-size:19px; display:flex; align-items:center; justify-content:center; cursor:pointer;}
+  header .hbtn:active{background:rgba(255,255,255,0.12);}
+  header h1{flex:1; font-size:17px; font-weight:700; margin:0;}
+  .search-row{background:var(--navy-dark); padding:0; max-height:0; overflow:hidden; transition:max-height .2s ease, padding .2s ease;}
+  .search-row.open{padding:10px 12px; max-height:60px;}
+  .search-row input{width:100%; background:rgba(255,255,255,0.12); border:none; border-radius:9px; color:#fff; padding:9px 12px; font-size:14px;}
+  .search-row input::placeholder{color:rgba(255,255,255,0.6);}
+
+  .drawer-overlay{position:fixed; inset:0; background:rgba(0,0,0,0.45); z-index:60; opacity:0; pointer-events:none; transition:opacity .2s ease;}
+  .drawer-overlay.open{opacity:1; pointer-events:auto;}
+  .drawer{position:fixed; top:0; left:0; bottom:0; width:78%; max-width:290px; background:#fff; z-index:61; transform:translateX(-100%); transition:transform .22s ease; display:flex; flex-direction:column; overflow-y:auto;}
+  .drawer-overlay.open .drawer{transform:translateX(0);}
+  .drawer-head{background:var(--navy); color:#fff; padding:26px 18px 18px;}
+  .drawer-head .emoji{font-size:30px;}
+  .drawer-head h2{margin:8px 0 2px; font-size:16px;}
+  .drawer-head small{opacity:.75; font-size:11.5px;}
+  .drawer-item{display:flex; align-items:center; gap:14px; padding:14px 18px; font-size:14.5px; font-weight:600; color:var(--text); cursor:pointer; border-bottom:1px solid var(--line);}
+  .drawer-item .ico{width:26px; text-align:center; font-size:17px;}
+  .drawer-item:active{background:var(--bg);}
+
+  .fab{position:fixed; right:18px; bottom:22px; z-index:25; width:56px; height:56px; border-radius:50%; border:none; background:linear-gradient(160deg,var(--orange),var(--orange-deep)); color:#fff; font-size:26px; display:flex; align-items:center; justify-content:center; box-shadow:0 6px 16px rgba(221,138,40,.45); cursor:pointer;}
+  .fab:active{transform:scale(.94);}
+
+  main{padding:14px 12px 90px;}
+  .grid{display:grid; grid-template-columns:1fr 1fr; gap:12px;}
+  @media(min-width:520px){ .grid{grid-template-columns:1fr 1fr 1fr;} }
+  @media(min-width:820px){ .grid{grid-template-columns:repeat(4,1fr);} }
+  .card{background:var(--card); border-radius:12px; overflow:hidden; cursor:pointer; box-shadow:0 1px 3px rgba(0,0,0,.12); border:1px solid rgba(0,0,0,.04);}
+  .card:active{transform:scale(.98);}
+  .card-photo{width:100%; aspect-ratio:1/1; object-fit:cover; display:block; background:#dfe4e8;}
+  .card-photo-ph{width:100%; aspect-ratio:1/1; display:flex; align-items:center; justify-content:center; font-size:30px; background:#dfe4e8;}
+  .card-info{padding:9px 10px 11px;}
+  .card-name{font-weight:700; font-size:13.5px; line-height:1.2; margin:0 0 2px;}
+  .card-date{font-size:11px; color:var(--muted); margin-bottom:5px;}
+  .card-bottom{display:flex; align-items:center; justify-content:space-between;}
+  .card-loc{font-size:10px; color:var(--muted); background:var(--bg); padding:2px 6px; border-radius:6px; max-width:70px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+
+  .empty-state{text-align:center; padding:70px 20px; color:var(--muted);}
+  .empty-state .big{font-size:40px; margin-bottom:10px;}
+  .empty-state h3{color:var(--text); font-size:16px; margin:0 0 4px;}
+
+  .backup-banner{display:flex; align-items:center; gap:9px; background:#fff4e0; border:1px solid #f0d29a; border-radius:10px; padding:10px 12px; margin-bottom:12px; font-size:12px; color:#7a5a1e;}
+  .backup-banner b{color:var(--orange-deep); cursor:pointer; text-decoration:underline; flex-shrink:0;}
+
+  .panel{position:fixed; inset:0; background:var(--bg); z-index:50; transform:translateX(100%); transition:transform .22s ease; overflow-y:auto;}
+  .panel.open{transform:translateX(0);}
+  .panel-head{background:var(--navy); color:#fff; padding:14px 8px; display:flex; align-items:center; gap:6px; position:sticky; top:0; z-index:5;}
+  .panel-head .pbtn{background:none; border:none; color:#fff; width:38px; height:38px; border-radius:8px; font-size:19px; display:flex; align-items:center; justify-content:center; cursor:pointer;}
+  .panel-head .pbtn:active{background:rgba(255,255,255,.12);}
+  .panel-head h2{flex:1; font-size:16.5px; margin:0; font-weight:700;}
+
+  .photo-boxes{display:flex; gap:10px; padding:14px 14px 0;}
+  .photo-box{flex:1; aspect-ratio:1/1; border-radius:12px; background:#dfe4e8; display:flex; align-items:center; justify-content:center; position:relative; overflow:hidden; cursor:pointer; border:2px dashed #b9c2c8;}
+  .photo-box img{width:100%; height:100%; object-fit:cover;}
+  .photo-box .plus{font-size:30px; color:#8fa0a8;}
+  .photo-box input{position:absolute; inset:0; opacity:0; cursor:pointer;}
+
+  .rating-hero{padding:16px 14px 6px; text-align:center;}
+  .rating-hero label{display:block; font-size:11px; color:var(--muted); font-weight:700; letter-spacing:.4px; margin-bottom:8px; text-transform:uppercase;}
+  .star-input-lg{display:flex; gap:6px; justify-content:center;}
+  .star-input-lg svg{width:38px; height:38px; cursor:pointer;}
+  .rating-value{font-size:12.5px; color:var(--muted); margin-top:6px; font-weight:600;}
+
+  .field-row{display:flex; align-items:center; gap:13px; background:#fff; padding:12px 14px; border-bottom:1px solid var(--line);}
+  .field-ico{width:34px; height:34px; border-radius:50%; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:15px; color:#fff;}
+  .field-row .fcol{flex:1; min-width:0;}
+  .field-row label{display:block; font-size:10.5px; color:var(--muted); font-weight:600; letter-spacing:.2px; margin-bottom:1px;}
+  .field-row input, .field-row textarea{width:100%; border:none; background:transparent; font-size:14.5px; color:var(--text); font-family:'Inter'; padding:0;}
+  .field-row input:focus, .field-row textarea:focus{outline:none;}
+  .field-row textarea{resize:vertical; min-height:44px;}
+  .field-row.selectlike{cursor:pointer;}
+  .field-row .placeholder-txt{color:#9fb0b8;}
+
+  .save-fab{margin:20px 14px 30px; width:calc(100% - 28px); padding:14px; border:none; border-radius:12px; background:linear-gradient(160deg,var(--orange),var(--orange-deep)); color:#fff; font-weight:800; font-size:15px; cursor:pointer;}
+  .delete-btn{margin:0 14px 30px; width:calc(100% - 28px); padding:13px; border-radius:12px; background:#fff; border:1px solid var(--danger); color:var(--danger); font-weight:700; font-size:14px; cursor:pointer;}
+
+  .detail-photos{display:flex; gap:8px; padding:12px;}
+  .detail-photos img{flex:1; aspect-ratio:1/1; object-fit:cover; border-radius:12px; background:#dfe4e8;}
+  .detail-title{padding:4px 16px 12px; text-align:center;}
+  .detail-title h2{margin:0 0 8px; font-size:20px;}
+  .detail-list{background:#fff;}
+  .drow{display:flex; align-items:center; gap:13px; padding:12px 16px; border-bottom:1px solid var(--line); font-size:14px;}
+  .drow .field-ico{width:30px; height:30px; font-size:13px;}
+  .drow .k{color:var(--muted); width:118px; flex-shrink:0;}
+  .drow .v{font-weight:600; flex:1; display:flex; align-items:center; gap:6px;}
+  .swatch-dot{width:16px; height:16px; border-radius:50%; flex-shrink:0; border:1px solid rgba(0,0,0,.15);}
+  .detail-notes{padding:14px 16px; font-size:14px; line-height:1.6; background:#fff; margin-top:10px;}
+
+  .stats-banner{background:linear-gradient(135deg,#3c526b,#22303e); padding:26px 18px; text-align:center; color:#fff;}
+  .stats-banner .lbl{font-size:12px; opacity:.75; letter-spacing:.4px; margin-bottom:4px;}
+  .stats-banner .num{font-size:30px; font-weight:800;}
+  .stats-list{background:#fff; margin-top:2px;}
+  .srow-head{display:flex; align-items:center; gap:13px; padding:14px 16px; border-bottom:1px solid var(--line); cursor:pointer;}
+  .srow-head .v{font-weight:700; margin-right:4px;}
+  .srow-head .chev{color:var(--muted); font-size:13px; transition:transform .18s ease;}
+  .srow-head.open .chev{transform:rotate(90deg);}
+  .srow-body{max-height:0; overflow:hidden; transition:max-height .25s ease; background:var(--bg);}
+  .srow-body.open{max-height:360px; overflow-y:auto;}
+  .srow-body-inner{padding:14px 16px 18px;}
+  .srow-hint{font-size:11px; color:var(--muted); text-align:center; margin-top:6px;}
+  .chart-box{position:relative; min-height:190px;}
+  .stats-empty{text-align:center; padding:70px 20px; color:var(--muted);}
+
+  .drill-row{display:flex; align-items:center; gap:11px; background:#fff; padding:11px 14px; border-bottom:1px solid var(--line); cursor:pointer;}
+  .drill-row img{width:42px; height:42px; border-radius:8px; object-fit:cover; background:#dfe4e8; flex-shrink:0;}
+  .drill-row .ph{width:42px; height:42px; border-radius:8px; background:#dfe4e8; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:18px;}
+  .drill-row .nm{font-weight:700; font-size:13.5px;}
+  .drill-row .dt{font-size:11px; color:var(--muted);}
+
+  .ach-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:2px; background:var(--line);}
+  .ach-item{background:#fff; padding:16px 8px; text-align:center;}
+  .ach-badge{width:56px; height:56px; border-radius:50%; margin:0 auto 8px; display:flex; align-items:center; justify-content:center; font-size:24px; background:#e1e6e9; filter:grayscale(1); opacity:.55;}
+  .ach-item.unlocked .ach-badge{filter:none; opacity:1; box-shadow:0 3px 10px rgba(0,0,0,.15);}
+  .ach-title{font-size:11px; font-weight:700; line-height:1.25;}
+  .ach-pts{font-size:10px; color:var(--muted); margin-top:2px;}
+
+  .modal-search{position:sticky; top:0; background:var(--navy-dark); padding:10px 12px; z-index:2;}
+  .modal-search input{width:100%; background:rgba(255,255,255,.12); border:none; border-radius:9px; color:#fff; padding:9px 12px; font-size:14px;}
+  .modal-search input::placeholder{color:rgba(255,255,255,.6);}
+  .country-row{display:flex; align-items:center; padding:13px 16px; background:#fff; border-bottom:1px solid var(--line); font-size:14.5px; cursor:pointer;}
+  .country-row.pinned{background:#fff8ec; font-weight:800; color:var(--orange-deep);}
+  .country-row:active{background:var(--bg);}
+
+  .swatch-grid{display:grid; grid-template-columns:repeat(5,1fr); gap:10px; padding:14px;}
+  .swatch{aspect-ratio:1/1; border-radius:10px; cursor:pointer; border:3px solid transparent; position:relative; display:flex; align-items:flex-end; justify-content:center; padding-bottom:3px;}
+  .swatch.selected{border-color:var(--navy);}
+  .swatch span{font-size:8.5px; color:rgba(0,0,0,.55); font-weight:700; background:rgba(255,255,255,.55); padding:1px 3px; border-radius:4px;}
+  .swatch-clear{grid-column:1/-1; text-align:center; font-size:12.5px; color:var(--muted); padding:6px; cursor:pointer; text-decoration:underline;}
+
+  .overlay{position:fixed; inset:0; background:rgba(0,0,0,.5); display:flex; align-items:flex-end; justify-content:center; z-index:70; opacity:0; pointer-events:none; transition:opacity .18s ease;}
+  .overlay.open{opacity:1; pointer-events:auto;}
+  .sheet{background:#fff; width:100%; max-width:560px; border-radius:18px 18px 0 0; max-height:90vh; overflow-y:auto; padding:6px 16px 26px;}
+  .sheet-handle{width:38px; height:4px; background:#d6dade; border-radius:4px; margin:12px auto 14px;}
+  .sheet h2{font-size:17px; margin:0 0 12px;}
+  .backup-block{background:var(--bg); border-radius:12px; padding:14px; margin-bottom:12px;}
+  .backup-block h3{margin:0 0 5px; font-size:14px;}
+  .backup-block p{margin:0 0 10px; font-size:12.5px; color:var(--muted); line-height:1.5;}
+  textarea.json-box{width:100%; min-height:80px; background:#fff; border:1px solid var(--line); border-radius:8px; padding:8px; font-size:10.5px; font-family:monospace;}
+  .btn{padding:11px; border-radius:10px; border:none; font-weight:700; font-size:14px; cursor:pointer; width:100%;}
+  .btn-primary{background:linear-gradient(160deg,var(--orange),var(--orange-deep)); color:#fff;}
+  .btn-ghost{background:#fff; border:1px solid var(--line); color:var(--text);}
+
+  .toast{position:fixed; bottom:90px; left:50%; transform:translateX(-50%); background:var(--navy); color:#fff; padding:10px 18px; border-radius:24px; font-size:13px; font-weight:600; z-index:110; opacity:0; pointer-events:none; transition:opacity .2s; max-width:88%; text-align:center;}
+  .toast.show{opacity:1;}
+</style>
+</head>
+<body>
+
+<header>
+  <button class="hbtn" id="btnMenu">☰</button>
+  <h1>Minha Coleção</h1>
+  <button class="hbtn" id="btnSearchToggle">🔍</button>
+</header>
+<div class="search-row" id="searchRow"><input type="text" id="searchInput" placeholder="Buscar por nome ou cervejaria…"></div>
+
+<main>
+  <div id="backupBanner"></div>
+  <div class="grid" id="grid"></div>
+  <div class="empty-state" id="emptyState" style="display:none;"></div>
+</main>
+
+<button class="fab" id="btnAdd">+</button>
+
+<div class="drawer-overlay" id="drawerOverlay">
+  <div class="drawer">
+    <div class="drawer-head">
+      <div class="emoji">🍺</div>
+      <h2>Diário de Cervejas</h2>
+      <small id="drawerCount">0 cervejas registradas</small>
+    </div>
+    <div class="drawer-item" id="navCollection"><span class="ico" style="color:#F96031;">🍺</span> Minha Coleção</div>
+    <div class="drawer-item" id="navAch"><span class="ico" style="color:#72B850;">🏆</span> Conquistas</div>
+    <div class="drawer-item" id="navStats"><span class="ico" style="color:#FFA50D;">📊</span> Estatísticas</div>
+    <div class="drawer-item" id="navBackup"><span class="ico">☁️</span> Backup</div>
+  </div>
+</div>
+
+<!-- Add/Edit panel -->
+<div class="panel" id="formPanel">
+  <div class="panel-head">
+    <button class="pbtn" id="btnFormBack">←</button>
+    <h2 id="formTitle">Nova cerveja</h2>
+    <button class="pbtn" id="btnFormSave">✓</button>
+  </div>
+  <div class="photo-boxes">
+    <div class="photo-box" id="photoBox1"><span class="plus">＋</span><img id="photoImg1" style="display:none;"><input type="file" accept="image/*" id="filePhoto1"></div>
+    <div class="photo-box" id="photoBox2"><span class="plus">＋</span><img id="photoImg2" style="display:none;"><input type="file" accept="image/*" id="filePhoto2"></div>
+  </div>
+  <div class="rating-hero">
+    <label>Avaliação</label>
+    <div class="star-input-lg" id="starInputLg"></div>
+    <div class="rating-value" id="ratingValueLbl">Sem nota</div>
+  </div>
+  <form id="beerForm">
+    <input type="hidden" id="beerId">
+    <div class="field-row">
+      <div class="field-ico" style="background:#e0624c;">🍺</div>
+      <div class="fcol"><label>Nome</label><input type="text" id="fName" required placeholder="Ex: Colorado Appia"></div>
+    </div>
+    <div class="field-row">
+      <div class="field-ico" style="background:#4a90d2;">📅</div>
+      <div class="fcol"><label>Data</label><input type="date" id="fDate"></div>
+    </div>
+    <div class="field-row selectlike" id="countryRow">
+      <div class="field-ico" style="background:#d9762e;">🌍</div>
+      <div class="fcol"><label>País</label><div id="countryDisplay" class="placeholder-txt">Selecionar país</div></div>
+    </div>
+    <div class="field-row">
+      <div class="field-ico" style="background:#8e6fc9;">📌</div>
+      <div class="fcol"><label>Local (onde bebeu)</label><input type="text" id="fPlace" list="dlPlace" placeholder="Ex: Bar do Zé, em casa…"><datalist id="dlPlace"></datalist></div>
+    </div>
+    <div class="field-row">
+      <div class="field-ico" style="background:#e0a83e;">🏭</div>
+      <div class="fcol"><label>Cervejaria</label><input type="text" id="fBrewery" list="dlBrewery" placeholder="Ex: Ambev, Bodebrown…"><datalist id="dlBrewery"></datalist></div>
+    </div>
+    <div class="field-row">
+      <div class="field-ico" style="background:#3cb8a3;">🥤</div>
+      <div class="fcol"><label>Estilo</label><input type="text" id="fStyle" list="dlStyle" placeholder="Ex: IPA, Weiss, Stout…"><datalist id="dlStyle"></datalist></div>
+    </div>
+    <div class="field-row">
+      <div class="field-ico" style="background:#d9527a;">👥</div>
+      <div class="fcol"><label>Com quem bebi</label><input type="text" id="fCompanions" list="dlCompanions" placeholder="Ex: João, Maria…"><datalist id="dlCompanions"></datalist></div>
+    </div>
+    <div class="field-row">
+      <div class="field-ico" style="background:#c0554f;">%</div>
+      <div class="fcol"><label>Teor alcoólico (ABV)</label><input type="number" id="fAbv" step="0.1" min="0" max="25" placeholder="5.0"></div>
+    </div>
+    <div class="field-row">
+      <div class="field-ico" style="background:#5a9e6f;">🌿</div>
+      <div class="fcol"><label>IBU (amargor)</label><input type="number" id="fIbu" step="1" min="0" max="150" placeholder="Ex: 45"></div>
+    </div>
+    <div class="field-row">
+      <div class="field-ico" style="background:#4a90d2;">🍾</div>
+      <div class="fcol"><label>Tamanho da garrafa (ml)</label><input type="number" id="fBottleSize" step="1" min="0" placeholder="Ex: 355, 600, 750…"></div>
+    </div>
+    <div class="field-row">
+      <div class="field-ico" style="background:#6fae3e;">💰</div>
+      <div class="fcol"><label>Preço</label><input type="text" id="fPrice" placeholder="Ex: R$ 12,90"></div>
+    </div>
+    <div class="field-row selectlike" id="colorRow">
+      <div class="field-ico" style="background:#a87a3a;">🎨</div>
+      <div class="fcol"><label>Cor (EBC/SRM)</label><div id="colorDisplay" class="placeholder-txt">Selecionar cor</div></div>
+    </div>
+    <div class="field-row">
+      <div class="field-ico" style="background:#8a8f99;">📝</div>
+      <div class="fcol"><label>Notas</label><textarea id="fNotes" placeholder="Aroma, harmonização…"></textarea></div>
+    </div>
+  </form>
+  <button class="save-fab" id="btnSaveBottom">Salvar cerveja</button>
+</div>
+
+<!-- Detail panel -->
+<div class="panel" id="detailPanel">
+  <div class="panel-head"><button class="pbtn" id="btnDetailBack">←</button><h2>Detalhes</h2><button class="pbtn" id="btnDetailEdit">✎</button></div>
+  <div id="detailContent"></div>
+</div>
+
+<!-- Stats panel -->
+<div class="panel" id="statsPanel">
+  <div class="panel-head"><button class="pbtn" id="btnStatsBack">←</button><h2>Estatísticas</h2><div style="width:38px;"></div></div>
+  <div class="stats-banner"><div class="lbl">NÚMERO DE CERVEJAS</div><div class="num" id="statsBannerNum">0</div></div>
+  <div class="stats-list" id="statsList"></div>
+  <div class="stats-empty" id="statsEmpty" style="display:none;">Registre algumas cervejas para ver suas estatísticas aqui.</div>
+</div>
+
+<!-- Achievements panel -->
+<div class="panel" id="achPanel">
+  <div class="panel-head"><button class="pbtn" id="btnAchBack">←</button><h2>Conquistas</h2><div style="width:38px;"></div></div>
+  <div class="stats-banner" style="background:linear-gradient(135deg,#4a8f4f,#2e5a32);"><div class="lbl">PONTOS</div><div class="num" id="achBannerNum">0</div></div>
+  <div class="ach-grid" id="achGrid"></div>
+</div>
+
+<!-- Drill-down panel -->
+<div class="panel" id="drillPanel">
+  <div class="panel-head"><button class="pbtn" id="btnDrillBack">←</button><h2 id="drillTitle">Cervejas</h2><div style="width:38px;"></div></div>
+  <div id="drillList"></div>
+</div>
+
+<!-- Country picker modal -->
+<div class="panel" id="countryPanel">
+  <div class="panel-head"><button class="pbtn" id="btnCountryBack">←</button><h2>Selecionar país</h2><div style="width:38px;"></div></div>
+  <div class="modal-search"><input type="text" id="countrySearch" placeholder="Buscar país…"></div>
+  <div id="countryList"></div>
+</div>
+
+<!-- Backup sheet -->
+<div class="overlay" id="backupOverlay">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <h2>Backup</h2>
+    <p style="font-size:13px; color:var(--muted); line-height:1.5; margin-bottom:14px;">Apps salvos na Tela de Início não têm armazenamento garantido pelo iPhone — o backup abaixo é sua rede de segurança real. Faça isso com frequência.</p>
+    <div class="backup-block" style="background:#eafaf1; border:1px solid #a3e0bd;">
+      <h3>☁️ Exportar para o iCloud Drive (recomendado)</h3>
+      <p>Toque em baixar e, quando o Safari perguntar onde salvar, escolha <b>iCloud Drive</b>. Não precisa criar conta nem configurar nada — já sincroniza sozinho com seus outros aparelhos Apple.</p>
+      <button class="btn btn-primary" id="btnExport">⬇ Baixar backup</button>
+    </div>
+    <div class="backup-block">
+      <h3>Importar backup</h3>
+      <p>Selecione o arquivo .json salvo anteriormente (no iCloud Drive, Google Drive, ou onde você guardou).</p>
+      <button class="btn btn-ghost" id="btnImport">⬆ Selecionar arquivo</button>
+      <input type="file" accept="application/json" id="fileImport" style="display:none;">
+    </div>
+    <div class="backup-block">
+      <h3>Alternativa: copiar/colar</h3>
+      <textarea class="json-box" id="jsonBox" placeholder="Cole aqui um backup para restaurar…"></textarea>
+      <div style="display:flex; gap:8px; margin-top:8px;">
+        <button class="btn btn-ghost" id="btnCopyJson">Copiar histórico</button>
+        <button class="btn btn-ghost" id="btnRestoreJson">Restaurar do texto</button>
+      </div>
+    </div>
+    <button class="btn btn-ghost" id="btnCloseBackup">Fechar</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+  const STORAGE_KEY = 'beers-data';
+  const LAST_BACKUP_KEY = 'beers-last-backup';
+  const ENTRIES_SINCE_BACKUP_KEY = 'beers-entries-since-backup';
+  let beers = [];
+  let photo1=null, photo2=null, currentRating=0, currentColor=null;
+
+  const grid = document.getElementById('grid');
+  const emptyState = document.getElementById('emptyState');
+  const searchInput = document.getElementById('searchInput');
+
+  function toast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'), 2600); }
+  function escapeHtml(s){ return (s||'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+  function formatDate(d){ if(!d) return ''; const [y,m,day]=d.split('-'); return `${day}/${m}/${y}`; }
+  const PALETTE = ['#e0624c','#4a90d2','#e0a83e','#3cb8a3','#d9762e','#d9527a','#6fae3e','#8e6fc9'];
+  function colorFor(str){ if(!str) return PALETTE[0]; let h=0; for(let i=0;i<str.length;i++) h=(h*31+str.charCodeAt(i))>>>0; return PALETTE[h%PALETTE.length]; }
+  function flagEmoji(iso2){ if(!iso2) return '🏳️'; return iso2.toUpperCase().split('').map(c=>String.fromCodePoint(127397+c.charCodeAt(0))).join(''); }
+
+  // ---- half-star rendering ----
+  let starIdCounter = 0;
+  function starsRow(rating, size){
+    starIdCounter++;
+    const px = size||14;
+    return `<div class="stars" style="display:flex; gap:1px;">` + [0,1,2,3,4].map(i=>{
+      const frac = Math.max(0, Math.min(1, (rating||0) - i));
+      const cid = 'sc'+starIdCounter+'-'+i;
+      return `<svg width="${px}" height="${px}" viewBox="0 0 24 24">
+        <defs><clipPath id="${cid}"><rect x="0" y="0" width="${(frac*24).toFixed(1)}" height="24"/></clipPath></defs>
+        <path d="M12 2l2.9 6.6 7.1.6-5.4 4.7 1.6 7-6.2-3.9-6.2 3.9 1.6-7L2 9.2l7.1-.6z" fill="#d6dade"/>
+        <path d="M12 2l2.9 6.6 7.1.6-5.4 4.7 1.6 7-6.2-3.9-6.2 3.9 1.6-7L2 9.2l7.1-.6z" fill="#f5b942" clip-path="url(#${cid})"/>
+      </svg>`;
+    }).join('') + `</div>`;
+  }
+
+  // ---- SRM/EBC color reference (sourced from BJCP/ASBC color guides) ----
+  const SRM_SWATCHES = [
+    {srm:2, ebc:4, hex:'#FFE699', ex:'Pilsen, Witbier'},
+    {srm:3, ebc:6, hex:'#FFD878', ex:'Maibock, Blonde'},
+    {srm:4, ebc:8, hex:'#FFCA5A', ex:'Weissbier'},
+    {srm:6, ebc:12, hex:'#FFBB3D', ex:'Pale Ale, IPA'},
+    {srm:8, ebc:16, hex:'#F8A600', ex:'Saison'},
+    {srm:10, ebc:20, hex:'#F39C00', ex:'English Bitter'},
+    {srm:13, ebc:26, hex:'#E58500', ex:'Double IPA'},
+    {srm:17, ebc:33, hex:'#D77200', ex:'Vienna, Märzen'},
+    {srm:20, ebc:39, hex:'#C35900', ex:'Brown Ale, Bock'},
+    {srm:24, ebc:47, hex:'#AC4A12', ex:'Irish Stout'},
+    {srm:29, ebc:57, hex:'#8E3212', ex:'Stout'},
+    {srm:35, ebc:69, hex:'#6E2410', ex:'Baltic Porter'},
+    {srm:40, ebc:79, hex:'#3F160C', ex:'Imperial Stout'}
+  ];
+
+  // ---- country list: [name, ISO2 code] — Brasil pinned separately ----
+  const COUNTRIES = [['Afeganistão','AF'],['África do Sul','ZA'],['Albânia','AL'],['Alemanha','DE'],['Andorra','AD'],['Angola','AO'],['Antígua e Barbuda','AG'],['Arábia Saudita','SA'],['Argélia','DZ'],['Argentina','AR'],['Armênia','AM'],['Austrália','AU'],['Áustria','AT'],['Azerbaijão','AZ'],['Bahamas','BS'],['Bahrein','BH'],['Bangladesh','BD'],['Barbados','BB'],['Bélgica','BE'],['Belize','BZ'],['Benin','BJ'],['Bielorrússia','BY'],['Bolívia','BO'],['Bósnia e Herzegovina','BA'],['Botsuana','BW'],['Brunei','BN'],['Bulgária','BG'],['Burkina Faso','BF'],['Burundi','BI'],['Butão','BT'],['Cabo Verde','CV'],['Camarões','CM'],['Camboja','KH'],['Canadá','CA'],['Catar','QA'],['Cazaquistão','KZ'],['Chade','TD'],['Chile','CL'],['China','CN'],['Chipre','CY'],['Colômbia','CO'],['Comores','KM'],['Congo','CG'],['Coreia do Norte','KP'],['Coreia do Sul','KR'],['Costa do Marfim','CI'],['Costa Rica','CR'],['Croácia','HR'],['Cuba','CU'],['Dinamarca','DK'],['Djibouti','DJ'],['Dominica','DM'],['Egito','EG'],['El Salvador','SV'],['Emirados Árabes Unidos','AE'],['Equador','EC'],['Eritreia','ER'],['Eslováquia','SK'],['Eslovênia','SI'],['Espanha','ES'],['Essuatíni','SZ'],['Estados Unidos','US'],['Estônia','EE'],['Etiópia','ET'],['Fiji','FJ'],['Filipinas','PH'],['Finlândia','FI'],['França','FR'],['Gabão','GA'],['Gâmbia','GM'],['Gana','GH'],['Geórgia','GE'],['Granada','GD'],['Grécia','GR'],['Guatemala','GT'],['Guiana','GY'],['Guiné','GN'],['Guiné-Bissau','GW'],['Guiné Equatorial','GQ'],['Haiti','HT'],['Honduras','HN'],['Hungria','HU'],['Iêmen','YE'],['Ilhas Marshall','MH'],['Ilhas Salomão','SB'],['Índia','IN'],['Indonésia','ID'],['Irã','IR'],['Iraque','IQ'],['Irlanda','IE'],['Islândia','IS'],['Israel','IL'],['Itália','IT'],['Jamaica','JM'],['Japão','JP'],['Jordânia','JO'],['Kiribati','KI'],['Kosovo','XK'],['Kuwait','KW'],['Laos','LA'],['Lesoto','LS'],['Letônia','LV'],['Líbano','LB'],['Libéria','LR'],['Líbia','LY'],['Liechtenstein','LI'],['Lituânia','LT'],['Luxemburgo','LU'],['Macedônia do Norte','MK'],['Madagascar','MG'],['Malásia','MY'],['Malawi','MW'],['Maldivas','MV'],['Mali','ML'],['Malta','MT'],['Marrocos','MA'],['Maurício','MU'],['Mauritânia','MR'],['México','MX'],['Mianmar','MM'],['Micronésia','FM'],['Moçambique','MZ'],['Moldávia','MD'],['Mônaco','MC'],['Mongólia','MN'],['Montenegro','ME'],['Namíbia','NA'],['Nauru','NR'],['Nepal','NP'],['Nicarágua','NI'],['Níger','NE'],['Nigéria','NG'],['Noruega','NO'],['Nova Zelândia','NZ'],['Omã','OM'],['Países Baixos','NL'],['Palau','PW'],['Panamá','PA'],['Papua-Nova Guiné','PG'],['Paquistão','PK'],['Paraguai','PY'],['Peru','PE'],['Polônia','PL'],['Portugal','PT'],['Quênia','KE'],['Quirguistão','KG'],['Reino Unido','GB'],['República Centro-Africana','CF'],['República Democrática do Congo','CD'],['República Dominicana','DO'],['República Tcheca','CZ'],['Romênia','RO'],['Ruanda','RW'],['Rússia','RU'],['Samoa','WS'],['San Marino','SM'],['Santa Lúcia','LC'],['São Cristóvão e Névis','KN'],['São Tomé e Príncipe','ST'],['São Vicente e Granadinas','VC'],['Seicheles','SC'],['Senegal','SN'],['Serra Leoa','SL'],['Sérvia','RS'],['Singapura','SG'],['Síria','SY'],['Somália','SO'],['Sri Lanka','LK'],['Sudão','SD'],['Sudão do Sul','SS'],['Suécia','SE'],['Suíça','CH'],['Suriname','SR'],['Tailândia','TH'],['Taiwan','TW'],['Tajiquistão','TJ'],['Tanzânia','TZ'],['Timor-Leste','TL'],['Togo','TG'],['Tonga','TO'],['Trinidad e Tobago','TT'],['Tunísia','TN'],['Turcomenistão','TM'],['Turquia','TR'],['Tuvalu','TV'],['Ucrânia','UA'],['Uganda','UG'],['Uruguai','UY'],['Uzbequistão','UZ'],['Vanuatu','VU'],['Vaticano','VA'],['Venezuela','VE'],['Vietnã','VN'],['Zâmbia','ZM'],['Zimbábue','ZW']];
+  const BRASIL = ['Brasil','BR'];
+
+  function countryCode(name){
+    if(!name) return null;
+    if(name===BRASIL[0]) return BRASIL[1];
+    const found = COUNTRIES.find(c=>c[0]===name);
+    return found ? found[1] : null;
+  }
+
+  // ---- persistence (local only — no external account needed) ----
+  async function loadBeers(){
+    try{ const raw = localStorage.getItem(STORAGE_KEY); beers = raw ? JSON.parse(raw) : []; }catch(e){ beers=[]; }
+    render();
+  }
+  async function saveBeers(){
+    try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(beers)); }
+    catch(e){ toast('Armazenamento cheio — exporte um backup e remova fotos grandes.'); }
+    try{
+      const n = parseInt(localStorage.getItem(ENTRIES_SINCE_BACKUP_KEY)||'0',10) + 1;
+      localStorage.setItem(ENTRIES_SINCE_BACKUP_KEY, String(n));
+    }catch(e){}
+  }
+
+  function renderBackupBanner(){
+    const el = document.getElementById('backupBanner');
+    if(beers.length===0){ el.innerHTML=''; return; }
+    let lastBackup=null; try{ lastBackup = localStorage.getItem(LAST_BACKUP_KEY); }catch(e){}
+    let entriesSince=0; try{ entriesSince = parseInt(localStorage.getItem(ENTRIES_SINCE_BACKUP_KEY)||'0',10); }catch(e){}
+    const days = lastBackup ? Math.floor((Date.now()-new Date(lastBackup).getTime())/86400000) : null;
+    const stale = days===null || days>=1 || entriesSince>=3;
+    if(!stale){ el.innerHTML=''; return; }
+    const msg = days===null ? 'Você ainda não fez backup.' : `Faz ${days} dia${days!==1?'s':''} (${entriesSince} cerveja${entriesSince!==1?'s':''} nova${entriesSince!==1?'s':''}) desde seu último backup.`;
+    el.innerHTML = `<div class="backup-banner"><span>⚠️</span><span style="flex:1;">${msg}</span><b id="bannerBackupBtn">Backup</b></div>`;
+    document.getElementById('bannerBackupBtn').addEventListener('click', ()=>openBackup());
+  }
+
+  // ---- collection render ----
+  function render(){
+    document.getElementById('drawerCount').textContent = `${beers.length} cerveja${beers.length!==1?'s':''} registrada${beers.length!==1?'s':''}`;
+    renderBackupBanner();
+    const q = searchInput.value.trim().toLowerCase();
+    const filtered = beers.filter(b => !q || (b.name+' '+b.brewery+' '+(b.style||'')+' '+(b.location||'')).toLowerCase().includes(q))
+      .sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+    if(filtered.length===0){
+      grid.innerHTML=''; emptyState.style.display='block';
+      emptyState.innerHTML = beers.length===0
+        ? `<div class="big">🍺</div><h3>Sua coleção está vazia</h3><div>Toque no + para registrar sua primeira cerveja.</div>`
+        : `<div class="big">🔍</div><h3>Nada encontrado</h3><div>Tente outro termo de busca.</div>`;
+      return;
+    }
+    emptyState.style.display='none';
+    grid.innerHTML = filtered.map(b => `
+      <div class="card" data-id="${b.id}">
+        ${b.photo ? `<img class="card-photo" src="${b.photo}">` : `<div class="card-photo-ph">🍺</div>`}
+        <div class="card-info">
+          <p class="card-name">${escapeHtml(b.name)}</p>
+          <div class="card-date">${formatDate(b.date)}</div>
+          <div class="card-bottom">${starsRow(b.rating,11)}${b.location ? `<span class="card-loc">${flagEmoji(countryCode(b.location))} ${escapeHtml(b.location)}</span>` : ''}</div>
+        </div>
+      </div>`).join('');
+    grid.querySelectorAll('.card').forEach(c=>c.addEventListener('click', ()=>openDetail(c.dataset.id)));
+  }
+  searchInput.addEventListener('input', render);
+
+  // ---- drawer ----
+  const drawerOverlay = document.getElementById('drawerOverlay');
+  document.getElementById('btnMenu').addEventListener('click', ()=>drawerOverlay.classList.add('open'));
+  drawerOverlay.addEventListener('click', e=>{ if(e.target===drawerOverlay) drawerOverlay.classList.remove('open'); });
+  document.getElementById('navCollection').addEventListener('click', ()=>{ drawerOverlay.classList.remove('open'); closeAllPanels(); });
+  document.getElementById('navAch').addEventListener('click', ()=>{ drawerOverlay.classList.remove('open'); openAchievements(); });
+  document.getElementById('navStats').addEventListener('click', ()=>{ drawerOverlay.classList.remove('open'); openStats(); });
+  document.getElementById('navBackup').addEventListener('click', ()=>{ drawerOverlay.classList.remove('open'); openBackup(); });
+
+  const searchRow = document.getElementById('searchRow');
+  document.getElementById('btnSearchToggle').addEventListener('click', ()=>{ searchRow.classList.toggle('open'); if(searchRow.classList.contains('open')) searchInput.focus(); });
+
+  function closeAllPanels(){ document.querySelectorAll('.panel').forEach(p=>p.classList.remove('open')); }
+
+  function resizeImage(file, maxDim, quality){
+    return new Promise((resolve,reject)=>{
+      const reader = new FileReader();
+      reader.onload = e => {
+        const img = new Image();
+        img.onload = () => {
+          let w=img.width, h=img.height;
+          if(w>h && w>maxDim){ h=Math.round(h*maxDim/w); w=maxDim; } else if(h>=w && h>maxDim){ w=Math.round(w*maxDim/h); h=maxDim; }
+          const canvas=document.createElement('canvas'); canvas.width=w; canvas.height=h;
+          canvas.getContext('2d').drawImage(img,0,0,w,h);
+          resolve(canvas.toDataURL('image/jpeg', quality));
+        };
+        img.onerror=reject; img.src=e.target.result;
+      };
+      reader.onerror=reject; reader.readAsDataURL(file);
+    });
+  }
+
+  // ---- datalists (autocomplete from history) ----
+  function refreshDatalists(){
+    const map = { dlBrewery:'brewery', dlStyle:'style', dlPlace:'place', dlCompanions:'companions' };
+    Object.keys(map).forEach(dlId=>{
+      const field = map[dlId];
+      const vals = [...new Set(beers.map(b=>b[field]).filter(Boolean))].sort();
+      document.getElementById(dlId).innerHTML = vals.map(v=>`<option value="${escapeHtml(v)}">`).join('');
+    });
+  }
+
+  // ---- star input (tap left/right half of a star) ----
+  const starInputLg = document.getElementById('starInputLg');
+  function renderStarInputLg(){
+    starInputLg.innerHTML = [0,1,2,3,4].map(i=>{
+      const frac = Math.max(0, Math.min(1, currentRating - i));
+      const cid = 'si-'+i;
+      return `<svg data-idx="${i}" width="38" height="38" viewBox="0 0 24 24">
+        <defs><clipPath id="${cid}"><rect x="0" y="0" width="${(frac*24).toFixed(1)}" height="24"/></clipPath></defs>
+        <path d="M12 2l2.9 6.6 7.1.6-5.4 4.7 1.6 7-6.2-3.9-6.2 3.9 1.6-7L2 9.2l7.1-.6z" fill="#d6dade"/>
+        <path d="M12 2l2.9 6.6 7.1.6-5.4 4.7 1.6 7-6.2-3.9-6.2 3.9 1.6-7L2 9.2l7.1-.6z" fill="#f5b942" clip-path="url(#${cid})"/>
+      </svg>`;
+    }).join('');
+    document.getElementById('ratingValueLbl').textContent = currentRating>0 ? currentRating.toFixed(1).replace('.0','')+' de 5' : 'Sem nota';
+    starInputLg.querySelectorAll('svg').forEach(svg=>{
+      svg.addEventListener('click', e=>{
+        const rect = svg.getBoundingClientRect();
+        const frac = (e.clientX-rect.left)/rect.width;
+        const idx = parseInt(svg.dataset.idx,10);
+        currentRating = idx + (frac<0.5?0.5:1);
+        renderStarInputLg();
+      });
+    });
+  }
+
+  // ---- country picker ----
+  const countryPanel = document.getElementById('countryPanel');
+  let selectedCountry = '';
+  function renderCountryList(filterText){
+    const q = (filterText||'').trim().toLowerCase();
+    const list = document.getElementById('countryList');
+    let html = '';
+    if(!q){
+      html += `<div class="country-row pinned" data-c="${BRASIL[0]}">${flagEmoji(BRASIL[1])} ${BRASIL[0]}</div>`;
+      html += COUNTRIES.map(c=>`<div class="country-row" data-c="${escapeHtml(c[0])}">${flagEmoji(c[1])} ${escapeHtml(c[0])}</div>`).join('');
+    } else {
+      const all = [BRASIL, ...COUNTRIES].filter(c=>c[0].toLowerCase().includes(q));
+      html = all.length ? all.map(c=>`<div class="country-row" data-c="${escapeHtml(c[0])}">${flagEmoji(c[1])} ${escapeHtml(c[0])}</div>`).join('') : `<div style="padding:30px; text-align:center; color:var(--muted);">Nenhum país encontrado.</div>`;
+    }
+    list.innerHTML = html;
+    list.querySelectorAll('.country-row').forEach(row=>{
+      row.addEventListener('click', ()=>{
+        selectedCountry = row.dataset.c;
+        document.getElementById('countryDisplay').textContent = row.textContent.trim();
+        document.getElementById('countryDisplay').classList.remove('placeholder-txt');
+        countryPanel.classList.remove('open');
+      });
+    });
+  }
+  document.getElementById('countryRow').addEventListener('click', ()=>{
+    closeAllPanels(); document.getElementById('countrySearch').value='';
+    renderCountryList(''); countryPanel.classList.add('open');
+    formPanel.classList.add('open'); // keep form visible underneath conceptually; re-open on back
+  });
+  document.getElementById('countrySearch').addEventListener('input', e=>renderCountryList(e.target.value));
+  document.getElementById('btnCountryBack').addEventListener('click', ()=>{ countryPanel.classList.remove('open'); });
+
+  // ---- color (SRM/EBC) picker ----
+  document.getElementById('colorRow').addEventListener('click', ()=>openColorPicker());
+  function openColorPicker(){
+    const overlay = document.createElement('div');
+    overlay.className = 'overlay open';
+    overlay.innerHTML = `<div class="sheet"><div class="sheet-handle"></div><h2>Cor da cerveja (EBC/SRM)</h2>
+      <div class="swatch-grid" id="swatchGrid"></div>
+      <div class="swatch-clear" id="swatchClear">Remover cor selecionada</div>
+      <button class="btn btn-ghost" id="swatchClose">Fechar</button></div>`;
+    document.body.appendChild(overlay);
+    const grid = overlay.querySelector('#swatchGrid');
+    grid.innerHTML = SRM_SWATCHES.map(s=>`<div class="swatch ${currentColor&&currentColor.srm===s.srm?'selected':''}" style="background:${s.hex};" data-srm="${s.srm}"><span>${s.srm}</span></div>`).join('');
+    grid.querySelectorAll('.swatch').forEach(sw=>{
+      sw.addEventListener('click', ()=>{
+        const srm = parseInt(sw.dataset.srm,10);
+        const found = SRM_SWATCHES.find(s=>s.srm===srm);
+        currentColor = found;
+        document.getElementById('colorDisplay').innerHTML = `<span class="swatch-dot" style="background:${found.hex};"></span> SRM ${found.srm} · EBC ${found.ebc} (${found.ex})`;
+        document.getElementById('colorDisplay').classList.remove('placeholder-txt');
+        document.body.removeChild(overlay);
+      });
+    });
+    overlay.querySelector('#swatchClear').addEventListener('click', ()=>{
+      currentColor = null;
+      document.getElementById('colorDisplay').textContent = 'Selecionar cor';
+      document.getElementById('colorDisplay').classList.add('placeholder-txt');
+      document.body.removeChild(overlay);
+    });
+    overlay.querySelector('#swatchClose').addEventListener('click', ()=>document.body.removeChild(overlay));
+    overlay.addEventListener('click', e=>{ if(e.target===overlay) document.body.removeChild(overlay); });
+  }
+
+  // ---- form panel ----
+  const formPanel = document.getElementById('formPanel');
+  function setPhotoSlot(n, dataUrl){
+    const img=document.getElementById('photoImg'+n), box=document.getElementById('photoBox'+n);
+    if(dataUrl){ img.src=dataUrl; img.style.display='block'; box.querySelector('.plus').style.display='none'; }
+    else{ img.style.display='none'; box.querySelector('.plus').style.display='block'; }
+  }
+  document.getElementById('filePhoto1').addEventListener('change', async e=>{ const f=e.target.files[0]; if(!f) return; try{ photo1=await resizeImage(f,800,0.7); setPhotoSlot(1,photo1); }catch(err){ toast('Não foi possível carregar a foto.'); } });
+  document.getElementById('filePhoto2').addEventListener('change', async e=>{ const f=e.target.files[0]; if(!f) return; try{ photo2=await resizeImage(f,800,0.7); setPhotoSlot(2,photo2); }catch(err){ toast('Não foi possível carregar a foto.'); } });
+
+  function openForm(beer){
+    closeAllPanels();
+    refreshDatalists();
+    document.getElementById('formTitle').textContent = beer ? 'Editar cerveja' : 'Nova cerveja';
+    document.getElementById('beerId').value = beer ? beer.id : '';
+    document.getElementById('fName').value = beer ? beer.name : '';
+    document.getElementById('fDate').value = beer ? beer.date : new Date().toISOString().slice(0,10);
+    document.getElementById('fPlace').value = beer ? beer.place||'' : '';
+    document.getElementById('fBrewery').value = beer ? beer.brewery||'' : '';
+    document.getElementById('fStyle').value = beer ? beer.style||'' : '';
+    document.getElementById('fCompanions').value = beer ? beer.companions||'' : '';
+    document.getElementById('fAbv').value = beer ? beer.abv||'' : '';
+    document.getElementById('fIbu').value = beer ? beer.ibu||'' : '';
+    document.getElementById('fBottleSize').value = beer ? beer.bottleSize||'' : '';
+    document.getElementById('fPrice').value = beer ? beer.price||'' : '';
+    document.getElementById('fNotes').value = beer ? beer.notes||'' : '';
+    selectedCountry = beer ? beer.location||'' : '';
+    document.getElementById('countryDisplay').textContent = selectedCountry ? (flagEmoji(countryCode(selectedCountry))+' '+selectedCountry) : 'Selecionar país';
+    document.getElementById('countryDisplay').classList.toggle('placeholder-txt', !selectedCountry);
+    currentColor = beer ? beer.color||null : null;
+    if(currentColor){ document.getElementById('colorDisplay').innerHTML = `<span class="swatch-dot" style="background:${currentColor.hex};"></span> SRM ${currentColor.srm} · EBC ${currentColor.ebc}`; document.getElementById('colorDisplay').classList.remove('placeholder-txt'); }
+    else{ document.getElementById('colorDisplay').textContent='Selecionar cor'; document.getElementById('colorDisplay').classList.add('placeholder-txt'); }
+    photo1 = beer ? beer.photo||null : null; photo2 = beer ? beer.photo2||null : null;
+    currentRating = beer ? beer.rating||0 : 0;
+    setPhotoSlot(1,photo1); setPhotoSlot(2,photo2);
+    renderStarInputLg();
+    formPanel.classList.add('open');
+  }
+  document.getElementById('btnAdd').addEventListener('click', ()=>openForm(null));
+  document.getElementById('btnFormBack').addEventListener('click', ()=>formPanel.classList.remove('open'));
+
+  async function submitForm(){
+    if(!document.getElementById('fName').value.trim()){ toast('Dê um nome pra cerveja.'); return; }
+    const id = document.getElementById('beerId').value || (Date.now()+'-'+Math.random().toString(36).slice(2,7));
+    const beer = {
+      id, name: document.getElementById('fName').value.trim(), date: document.getElementById('fDate').value,
+      location: selectedCountry, place: document.getElementById('fPlace').value.trim(),
+      brewery: document.getElementById('fBrewery').value.trim(), style: document.getElementById('fStyle').value.trim(),
+      companions: document.getElementById('fCompanions').value.trim(),
+      abv: document.getElementById('fAbv').value ? parseFloat(document.getElementById('fAbv').value) : null,
+      ibu: document.getElementById('fIbu').value ? parseInt(document.getElementById('fIbu').value,10) : null,
+      bottleSize: document.getElementById('fBottleSize').value ? parseInt(document.getElementById('fBottleSize').value,10) : null,
+      price: document.getElementById('fPrice').value.trim(), color: currentColor,
+      notes: document.getElementById('fNotes').value.trim(), rating: currentRating,
+      photo: photo1, photo2: photo2
+    };
+    const idx = beers.findIndex(b=>b.id===id);
+    if(idx>=0) beers[idx]=beer; else beers.push(beer);
+    await saveBeers();
+    formPanel.classList.remove('open'); render();
+    toast('Cerveja salva!');
+  }
+  document.getElementById('btnFormSave').addEventListener('click', submitForm);
+  document.getElementById('btnSaveBottom').addEventListener('click', submitForm);
+  document.getElementById('beerForm').addEventListener('submit', e=>e.preventDefault());
+
+  // ---- detail panel ----
+  const detailPanel = document.getElementById('detailPanel');
+  const detailContent = document.getElementById('detailContent');
+  let detailId = null;
+  function openDetail(id){
+    detailId = id;
+    const b = beers.find(x=>x.id===id); if(!b) return;
+    closeAllPanels();
+    detailContent.innerHTML = `
+      ${(b.photo||b.photo2) ? `<div class="detail-photos">${b.photo?`<img src="${b.photo}">`:''}${b.photo2?`<img src="${b.photo2}">`:''}</div>` : ''}
+      <div class="detail-title"><h2>${escapeHtml(b.name)}</h2>${starsRow(b.rating,22)}</div>
+      <div class="detail-list">
+        <div class="drow"><div class="field-ico" style="background:#e0a83e;">🏭</div><div class="k">Cervejaria</div><div class="v">${escapeHtml(b.brewery||'—')}</div></div>
+        <div class="drow"><div class="field-ico" style="background:#3cb8a3;">🥤</div><div class="k">Estilo</div><div class="v">${escapeHtml(b.style||'—')}</div></div>
+        <div class="drow"><div class="field-ico" style="background:#d9762e;">🌍</div><div class="k">País</div><div class="v">${b.location?flagEmoji(countryCode(b.location))+' '+escapeHtml(b.location):'—'}</div></div>
+        <div class="drow"><div class="field-ico" style="background:#8e6fc9;">📌</div><div class="k">Local</div><div class="v">${escapeHtml(b.place||'—')}</div></div>
+        <div class="drow"><div class="field-ico" style="background:#d9527a;">👥</div><div class="k">Com quem</div><div class="v">${escapeHtml(b.companions||'—')}</div></div>
+        <div class="drow"><div class="field-ico" style="background:#c0554f;">%</div><div class="k">Teor alcoólico</div><div class="v">${b.abv?b.abv+'%':'—'}</div></div>
+        <div class="drow"><div class="field-ico" style="background:#5a9e6f;">🌿</div><div class="k">IBU</div><div class="v">${b.ibu??'—'}</div></div>
+        <div class="drow"><div class="field-ico" style="background:#4a90d2;">🍾</div><div class="k">Garrafa</div><div class="v">${b.bottleSize?b.bottleSize+' ml':'—'}</div></div>
+        <div class="drow"><div class="field-ico" style="background:#a87a3a;">🎨</div><div class="k">Cor</div><div class="v">${b.color?`<span class="swatch-dot" style="background:${b.color.hex};"></span> SRM ${b.color.srm} · EBC ${b.color.ebc}`:'—'}</div></div>
+        <div class="drow"><div class="field-ico" style="background:#6fae3e;">💰</div><div class="k">Preço</div><div class="v">${escapeHtml(b.price||'—')}</div></div>
+        <div class="drow"><div class="field-ico" style="background:#4a90d2;">📅</div><div class="k">Data</div><div class="v">${formatDate(b.date)||'—'}</div></div>
+      </div>
+      ${b.notes ? `<div class="detail-notes">${escapeHtml(b.notes)}</div>` : ''}
+      <button class="delete-btn" id="btnDeleteBeer" style="margin-top:16px;">Excluir cerveja</button>`;
+    document.getElementById('btnDeleteBeer').addEventListener('click', async ()=>{
+      if(!confirm('Excluir esta cerveja do seu diário?')) return;
+      beers = beers.filter(x=>x.id!==id);
+      await saveBeers(); detailPanel.classList.remove('open'); render();
+      toast('Cerveja excluída.');
+    });
+    detailPanel.classList.add('open');
+  }
+  document.getElementById('btnDetailBack').addEventListener('click', ()=>detailPanel.classList.remove('open'));
+  document.getElementById('btnDetailEdit').addEventListener('click', ()=>{ const b=beers.find(x=>x.id===detailId); detailPanel.classList.remove('open'); openForm(b); });
+
+  // ---- SVG chart builders (offline, clickable segments for drill-down) ----
+  function svgVBarChart(data){
+    const W=300,H=180,padBottom=32,padTop=18,padSide=6;
+    const chartW=W-padSide*2, chartH=H-padTop-padBottom;
+    const max=Math.max(...data.map(d=>d.value),1);
+    const gap=chartW/data.length; const barW=Math.min(gap*0.55,42);
+    let bars='';
+    data.forEach((d,i)=>{
+      const barH=(d.value/max)*chartH; const x=padSide+gap*i+(gap-barW)/2, y=padTop+(chartH-barH);
+      const lbl = d.label.length>8 ? d.label.slice(0,7)+'…' : d.label;
+      bars += `<g data-key="${escapeHtml(d.label)}" style="cursor:pointer;">
+        <rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${barW.toFixed(1)}" height="${Math.max(barH,2).toFixed(1)}" rx="6" fill="${d.color}"/>
+        <rect x="${x.toFixed(1)}" y="${padTop}" width="${barW.toFixed(1)}" height="${chartH}" fill="transparent"/>
+        <text x="${(x+barW/2).toFixed(1)}" y="${(y-6).toFixed(1)}" font-size="10" font-weight="700" fill="#263238" text-anchor="middle">${d.value}</text>
+        <text x="${(x+barW/2).toFixed(1)}" y="${H-12}" font-size="9.5" fill="#78909c" text-anchor="middle">${escapeHtml(lbl)}</text>
+      </g>`;
+    });
+    return `<svg viewBox="0 0 ${W} ${H}" width="100%" height="100%" preserveAspectRatio="xMidYMid meet">${bars}</svg>`;
+  }
+  function svgHBarChart(data){
+    const W=300, rowH=32, padLeft=90, padRight=32, padTop=4;
+    const H = padTop*2 + rowH*data.length;
+    const chartW = W-padLeft-padRight; const max=Math.max(...data.map(d=>d.value),1);
+    let rows='';
+    data.forEach((d,i)=>{
+      const y=padTop+i*rowH, barW=(d.value/max)*chartW;
+      const lbl = d.label.length>13 ? d.label.slice(0,12)+'…' : d.label;
+      rows += `<g data-key="${escapeHtml(d.label)}" style="cursor:pointer;">
+        <rect x="0" y="${y.toFixed(1)}" width="${W}" height="${rowH}" fill="transparent"/>
+        <text x="${padLeft-8}" y="${(y+rowH/2+4).toFixed(1)}" font-size="10.5" fill="#263238" text-anchor="end" font-weight="700">${escapeHtml(lbl)}</text>
+        <rect x="${padLeft}" y="${(y+6).toFixed(1)}" width="${Math.max(barW,3).toFixed(1)}" height="${rowH-12}" rx="6" fill="${d.color}"/>
+        <text x="${(padLeft+barW+7).toFixed(1)}" y="${(y+rowH/2+4).toFixed(1)}" font-size="10.5" fill="#78909c">${d.value}</text>
+      </g>`;
+    });
+    return `<svg viewBox="0 0 ${W} ${H}" width="100%" height="100%" preserveAspectRatio="xMidYMid meet">${rows}</svg>`;
+  }
+  function svgLineChart(labels, values, keys){
+    const W=300,H=180,padLeft=20,padRight=12,padTop=16,padBottom=28;
+    const chartW=W-padLeft-padRight, chartH=H-padTop-padBottom;
+    const max=Math.max(...values,1);
+    const stepX = values.length>1 ? chartW/(values.length-1) : 0;
+    const pts = values.map((v,i)=>[padLeft+stepX*i, padTop+chartH-(v/max)*chartH]);
+    const linePath = pts.map((p,i)=>(i===0?'M':'L')+p[0].toFixed(1)+' '+p[1].toFixed(1)).join(' ');
+    const base=(padTop+chartH).toFixed(1);
+    const areaPath = `${linePath} L${pts[pts.length-1][0].toFixed(1)} ${base} L${pts[0][0].toFixed(1)} ${base} Z`;
+    const dots = pts.map((p,i)=>`<g data-key="${escapeHtml(keys[i])}" style="cursor:pointer;"><circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="8" fill="transparent"/><circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="3" fill="#dd8a28"/></g>`).join('');
+    const xLabels = labels.map((l,i)=>`<text x="${pts[i][0].toFixed(1)}" y="${H-8}" font-size="9" fill="#78909c" text-anchor="middle">${l}</text>`).join('');
+    return `<svg viewBox="0 0 ${W} ${H}" width="100%" height="100%" preserveAspectRatio="xMidYMid meet">
+      <defs><linearGradient id="ag" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#f5a742" stop-opacity="0.4"/><stop offset="100%" stop-color="#f5a742" stop-opacity="0"/></linearGradient></defs>
+      <path d="${areaPath}" fill="url(#ag)"/><path d="${linePath}" fill="none" stroke="#dd8a28" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+      ${dots}${xLabels}</svg>`;
+  }
+  function svgDonutChart(data){
+    const size=140, cx=size/2, cy=size/2, r=50, strokeW=18;
+    const total = data.reduce((s,d)=>s+d.value,0);
+    const circumference = 2*Math.PI*r;
+    let offset=0, segs='';
+    if(total===0){ segs = `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="#e1e6e9" stroke-width="${strokeW}"/>`; }
+    else{
+      data.forEach(d=>{
+        if(d.value===0) return;
+        const len=(d.value/total)*circumference;
+        segs += `<circle data-key="${escapeHtml(d.label)}" style="cursor:pointer;" cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${d.color}" stroke-width="${strokeW}" stroke-dasharray="${len.toFixed(1)} ${(circumference-len).toFixed(1)}" stroke-dashoffset="${(-offset).toFixed(1)}" transform="rotate(-90 ${cx} ${cy})"/>`;
+        offset+=len;
+      });
+    }
+    const legend = data.map(d=>`<div data-key="${escapeHtml(d.label)}" style="display:flex;align-items:center;gap:6px;font-size:11px;color:#263238;cursor:pointer;"><span style="width:9px;height:9px;border-radius:50%;background:${d.color};display:inline-block;flex-shrink:0;"></span>${escapeHtml(d.label)}<span style="color:#78909c;">(${d.value})</span></div>`).join('');
+    return `<div style="display:flex; flex-direction:column; align-items:center; gap:10px; height:100%; justify-content:center;">
+      <svg viewBox="0 0 ${size} ${size}" width="120" height="120">${segs}<text x="${cx}" y="${cy+6}" text-anchor="middle" font-size="18" font-weight="800" fill="#263238">${total}</text></svg>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:5px 12px;">${legend}</div>
+    </div>`;
+  }
+
+  // ---- drill-down ----
+  const drillPanel = document.getElementById('drillPanel');
+  function openDrillDown(title, list){
+    document.getElementById('drillTitle').textContent = `${title} (${list.length})`;
+    document.getElementById('drillList').innerHTML = list.map(b=>`
+      <div class="drill-row" data-id="${b.id}">
+        ${b.photo?`<img src="${b.photo}">`:`<div class="ph">🍺</div>`}
+        <div style="flex:1;"><div class="nm">${escapeHtml(b.name)}</div><div class="dt">${formatDate(b.date)}${b.brewery?' · '+escapeHtml(b.brewery):''}</div></div>
+        ${starsRow(b.rating,12)}
+      </div>`).join('');
+    document.getElementById('drillList').querySelectorAll('.drill-row').forEach(row=>{
+      row.addEventListener('click', ()=>{ drillPanel.classList.remove('open'); openDetail(row.dataset.id); });
+    });
+    drillPanel.classList.add('open');
+  }
+  document.getElementById('btnDrillBack').addEventListener('click', ()=>drillPanel.classList.remove('open'));
+
+  function wireChartClicks(containerId, dimGet, dimLabel){
+    const el = document.getElementById(containerId);
+    if(el.dataset.wired) return; // delegated listener stays valid even as inner content is replaced
+    el.dataset.wired = '1';
+    el.addEventListener('click', e=>{
+      const t = e.target.closest('[data-key]');
+      if(!t) return;
+      const key = t.dataset.key;
+      const matches = beers.filter(b => String(dimGet(b)) === key);
+      openDrillDown(`${dimLabel}: ${key}`, matches);
+    });
+  }
+
+  function bucketAbv(abv){
+    if(abv==null) return 'Não informado';
+    if(abv<4) return '< 4%'; if(abv<6) return '4–5,9%'; if(abv<8) return '6–7,9%'; if(abv<10) return '8–9,9%';
+    return '10%+';
+  }
+
+  // ---- stats panel ----
+  const statsPanel = document.getElementById('statsPanel');
+  document.getElementById('btnStatsBack').addEventListener('click', ()=>statsPanel.classList.remove('open'));
+
+  const DIMENSIONS = [
+    {key:'style', label:'Estilos', icon:'🥤', color:'#3cb8a3', get:b=>b.style},
+    {key:'brewery', label:'Cervejarias', icon:'🏭', color:'#e0a83e', get:b=>b.brewery},
+    {key:'location', label:'Países', icon:'🌍', color:'#4a90d2', get:b=>b.location},
+    {key:'place', label:'Locais', icon:'📌', color:'#8e6fc9', get:b=>b.place},
+    {key:'companions', label:'Com quem', icon:'👥', color:'#d9527a', get:b=>b.companions},
+    {key:'abv', label:'Teor alcoólico', icon:'%', color:'#c0554f', get:b=>bucketAbv(b.abv)}
+  ];
+
+  function openStats(){
+    closeAllPanels();
+    const statsList = document.getElementById('statsList');
+    const statsEmpty = document.getElementById('statsEmpty');
+    document.getElementById('statsBannerNum').textContent = beers.length;
+    if(beers.length===0){ statsList.innerHTML=''; statsEmpty.style.display='block'; statsPanel.classList.add('open'); return; }
+    statsEmpty.style.display='none';
+
+    const ratings = beers.map(b=>b.rating).filter(r=>r>0);
+    const monthCounts={}; beers.forEach(b=>{ if(b.date) monthCounts[b.date.slice(0,7)]=(monthCounts[b.date.slice(0,7)]||0)+1; });
+    const months = Object.keys(monthCounts).sort();
+
+    let rowsHtml = DIMENSIONS.map(dim=>{
+      const counts={}; beers.forEach(b=>{ const v=dim.get(b); if(!v) return; counts[v]=(counts[v]||0)+1; });
+      const distinct = Object.keys(counts).length;
+      return `<div class="srow">
+        <div class="srow-head" data-target="body-${dim.key}"><div class="field-ico" style="background:${dim.color}; width:30px; height:30px; font-size:13px;">${dim.icon}</div><div style="flex:1;">${dim.label}</div><span class="v">${distinct}</span><span class="chev">›</span></div>
+        <div class="srow-body" id="body-${dim.key}"><div class="srow-body-inner"><div class="chart-box" id="chart-${dim.key}"></div><div class="srow-hint">Toque numa barra para ver as cervejas</div></div></div>
+      </div>`;
+    }).join('');
+
+    rowsHtml += `<div class="srow">
+        <div class="srow-head" data-target="body-rating"><div class="field-ico" style="background:#f5b942; width:30px; height:30px; font-size:13px;">⭐</div><div style="flex:1;">Notas</div><span class="v">${ratings.length?Math.min(...ratings).toFixed(1)+' – '+Math.max(...ratings).toFixed(1):'—'}</span><span class="chev">›</span></div>
+        <div class="srow-body" id="body-rating"><div class="srow-body-inner"><div class="chart-box" id="chart-rating"></div><div class="srow-hint">Toque numa fatia para ver as cervejas</div></div></div>
+      </div>
+      <div class="srow">
+        <div class="srow-head" data-target="body-time"><div class="field-ico" style="background:#4a90d2; width:30px; height:30px; font-size:13px;">📈</div><div style="flex:1;">Histórico</div><span class="v">${months.length} mês${months.length!==1?'es':''}</span><span class="chev">›</span></div>
+        <div class="srow-body" id="body-time"><div class="srow-body-inner"><div class="chart-box" id="chart-time"></div><div class="srow-hint">Toque num ponto para ver as cervejas do mês</div></div></div>
+      </div>`;
+
+    statsList.innerHTML = rowsHtml;
+
+    statsList.querySelectorAll('.srow-head').forEach(h=>{
+      h.addEventListener('click', ()=>{
+        const body = document.getElementById(h.dataset.target);
+        const wasOpen = body.classList.contains('open');
+        statsList.querySelectorAll('.srow-body').forEach(b=>b.classList.remove('open'));
+        statsList.querySelectorAll('.srow-head').forEach(hh=>hh.classList.remove('open'));
+        if(wasOpen) return;
+        body.classList.add('open'); h.classList.add('open');
+        const target = h.dataset.target;
+
+        const dim = DIMENSIONS.find(d=>'body-'+d.key===target);
+        if(dim){
+          const counts={}; beers.forEach(b=>{ const v=dim.get(b); if(!v) return; counts[v]=(counts[v]||0)+1; });
+          const sorted = Object.keys(counts).sort((a,b)=>counts[b]-counts[a]);
+          const top = sorted.slice(0,8).map(k=>({label:k, value:counts[k], color:colorFor(k)}));
+          const boxId = 'chart-'+dim.key;
+          document.getElementById(boxId).innerHTML = top.length ? (dim.key==='brewery'||dim.key==='companions'||dim.key==='place' ? svgHBarChart(top) : svgVBarChart(top)) : `<div style="text-align:center; color:#78909c; font-size:12.5px; padding-top:40px;">Nada registrado ainda.</div>`;
+          wireChartClicks(boxId, dim.get, dim.label);
+          return;
+        }
+        if(target==='body-rating'){
+          const buckets = [1,2,3,4,5];
+          const counts = buckets.map(r=>beers.filter(b=>Math.round(b.rating)===r).length);
+          const colors=['#e0624c','#e0a83e','#f5b942','#7fbf4d','#3cb8a3'];
+          const rd = buckets.map((r,i)=>({label:r+' estrela'+(r>1?'s':''), value:counts[i], color:colors[i]}));
+          document.getElementById('chart-rating').innerHTML = svgDonutChart(rd);
+          wireChartClicks('chart-rating', b=>{ const r=Math.round(b.rating); return r+' estrela'+(r>1?'s':''); }, 'Nota');
+        }
+        if(target==='body-time'){
+          if(months.length<2){ document.getElementById('chart-time').innerHTML = '<div style="text-align:center; color:#78909c; font-size:12.5px; padding-top:40px;">Registre cervejas em mais de um mês pra ver a evolução aqui.</div>'; return; }
+          const mLabels = months.map(m=>{ const [y,mo]=m.split('-'); return `${mo}/${y.slice(2)}`; });
+          document.getElementById('chart-time').innerHTML = svgLineChart(mLabels, months.map(m=>monthCounts[m]), months);
+          wireChartClicks('chart-time', b=> b.date ? b.date.slice(0,7) : '', 'Mês');
+        }
+      });
+    });
+
+    statsPanel.classList.add('open');
+  }
+
+  // ---- achievements ----
+  const achPanel = document.getElementById('achPanel');
+  document.getElementById('btnAchBack').addEventListener('click', ()=>achPanel.classList.remove('open'));
+  function daysSince(dateStr){ if(!dateStr) return 0; return Math.floor((Date.now()-new Date(dateStr).getTime())/86400000); }
+  function openAchievements(){
+    closeAllPanels();
+    const count = beers.length;
+    const distinctStyles = new Set(beers.map(b=>b.style).filter(Boolean)).size;
+    const distinctBreweries = new Set(beers.map(b=>b.brewery).filter(Boolean)).size;
+    const distinctCountries = new Set(beers.map(b=>b.location).filter(Boolean)).size;
+    const distinctPlaces = new Set(beers.map(b=>b.place).filter(Boolean)).size;
+    const distinctCompanions = new Set(beers.map(b=>b.companions).filter(Boolean)).size;
+    const hasFive = beers.some(b=>b.rating===5);
+    const hasLow = beers.some(b=>b.rating>0 && b.rating<=1);
+    const hasHoppy = beers.some(b=>b.ibu>=60);
+    const hasDark = beers.some(b=>b.color && b.color.srm>=24);
+    const hasPale = beers.some(b=>b.color && b.color.srm<=3);
+    const hasBigBottle = beers.some(b=>b.bottleSize>=750);
+    const dates = beers.map(b=>b.date).filter(Boolean).sort();
+    const daysActive = dates.length ? daysSince(dates[0]) : 0;
+
+    const achievements = [
+      {icon:'🍺', title:'Primeira cerveja', pts:1, unlocked: count>=1},
+      {icon:'🍻', title:'10 cervejas', pts:10, unlocked: count>=10},
+      {icon:'🍻', title:'50 cervejas', pts:50, unlocked: count>=50},
+      {icon:'💯', title:'100 cervejas', pts:100, unlocked: count>=100},
+      {icon:'🥤', title:'5 estilos', pts:20, unlocked: distinctStyles>=5},
+      {icon:'🥤', title:'10 estilos', pts:40, unlocked: distinctStyles>=10},
+      {icon:'🥤', title:'20 estilos', pts:60, unlocked: distinctStyles>=20},
+      {icon:'🏭', title:'10 cervejarias', pts:30, unlocked: distinctBreweries>=10},
+      {icon:'🏭', title:'20 cervejarias', pts:60, unlocked: distinctBreweries>=20},
+      {icon:'🌍', title:'10 países', pts:20, unlocked: distinctCountries>=10},
+      {icon:'🌍', title:'20 países', pts:40, unlocked: distinctCountries>=20},
+      {icon:'📍', title:'5 locais diferentes', pts:20, unlocked: distinctPlaces>=5},
+      {icon:'👥', title:'Bebeu com 5 pessoas', pts:20, unlocked: distinctCompanions>=5},
+      {icon:'👥', title:'Bebeu com 10 pessoas', pts:40, unlocked: distinctCompanions>=10},
+      {icon:'⭐', title:'A melhor cerveja', pts:50, unlocked: hasFive},
+      {icon:'💔', title:'A pior cerveja', pts:50, unlocked: hasLow},
+      {icon:'🌶️', title:'IPA turbinada (IBU 60+)', pts:20, unlocked: hasHoppy},
+      {icon:'🌑', title:'Cerveja bem escura', pts:20, unlocked: hasDark},
+      {icon:'☀️', title:'Cerveja bem clara', pts:20, unlocked: hasPale},
+      {icon:'🍾', title:'Garrafa grande (750ml+)', pts:15, unlocked: hasBigBottle},
+      {icon:'📅', title:'1 mês de diário', pts:10, unlocked: daysActive>=30},
+      {icon:'📅', title:'3 meses de diário', pts:30, unlocked: daysActive>=90},
+      {icon:'📅', title:'6 meses de diário', pts:60, unlocked: daysActive>=180},
+    ];
+    const totalPts = achievements.filter(a=>a.unlocked).reduce((s,a)=>s+a.pts,0);
+    document.getElementById('achBannerNum').textContent = totalPts;
+    document.getElementById('achGrid').innerHTML = achievements.map(a=>`
+      <div class="ach-item ${a.unlocked?'unlocked':''}"><div class="ach-badge">${a.icon}</div><div class="ach-title">${a.title}</div><div class="ach-pts">${a.pts} pts</div></div>`).join('');
+    achPanel.classList.add('open');
+  }
+
+  // ---- backup sheet ----
+  const backupOverlay = document.getElementById('backupOverlay');
+  function openBackup(){ backupOverlay.classList.add('open'); }
+  document.getElementById('btnCloseBackup').addEventListener('click', ()=>backupOverlay.classList.remove('open'));
+  backupOverlay.addEventListener('click', e=>{ if(e.target===backupOverlay) backupOverlay.classList.remove('open'); });
+
+  function markBackedUp(){
+    try{
+      localStorage.setItem(LAST_BACKUP_KEY, new Date().toISOString());
+      localStorage.setItem(ENTRIES_SINCE_BACKUP_KEY, '0');
+    }catch(e){}
+  }
+
+  document.getElementById('btnExport').addEventListener('click', ()=>{
+    const data = JSON.stringify({ exportedAt:new Date().toISOString(), beers }, null, 2);
+    const blob = new Blob([data], {type:'application/json'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href=url; a.download=`diario-de-cervejas-backup-${new Date().toISOString().slice(0,10)}.json`;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(()=>URL.revokeObjectURL(url), 2000);
+    markBackedUp();
+    render();
+    toast('Backup gerado — escolha iCloud Drive ao salvar.');
+  });
+  document.getElementById('btnImport').addEventListener('click', ()=>document.getElementById('fileImport').click());
+  document.getElementById('fileImport').addEventListener('change', e=>{
+    const file=e.target.files[0]; if(!file) return;
+    const reader = new FileReader();
+    reader.onload = async ev => { try{ const parsed=JSON.parse(ev.target.result); await mergeImportedBeers(parsed.beers||parsed); }catch(err){ toast('Arquivo inválido.'); } };
+    reader.readAsText(file);
+  });
+  document.getElementById('btnCopyJson').addEventListener('click', async ()=>{
+    const data = JSON.stringify({ exportedAt:new Date().toISOString(), beers }, null, 2);
+    document.getElementById('jsonBox').value = data;
+    try{ await navigator.clipboard.writeText(data); toast('Copiado!'); }catch(e){ toast('Texto pronto na caixa — copie manualmente.'); }
+  });
+  document.getElementById('btnRestoreJson').addEventListener('click', async ()=>{
+    const raw = document.getElementById('jsonBox').value.trim(); if(!raw) return toast('Cole um backup primeiro.');
+    try{ const parsed=JSON.parse(raw); await mergeImportedBeers(parsed.beers||parsed); }catch(e){ toast('Texto inválido.'); }
+  });
+  async function mergeImportedBeers(imported){
+    if(!Array.isArray(imported)) return toast('Formato de backup inválido.');
+    const existingIds = new Set(beers.map(b=>b.id)); let added=0;
+    imported.forEach(b=>{ if(b && b.id && !existingIds.has(b.id)){ beers.push(b); existingIds.add(b.id); added++; } });
+    await saveBeers();
+    markBackedUp();
+    render(); backupOverlay.classList.remove('open');
+    toast(`${added} cerveja${added!==1?'s':''} restaurada${added!==1?'s':''}.`);
+  }
+
+  loadBeers();
+})();
+</script>
+</body>
+</html>
